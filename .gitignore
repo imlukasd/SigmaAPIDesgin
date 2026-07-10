@@ -1,0 +1,52 @@
+# Local agent files
+.agents/
+.codex/
+AGENTS.md
+
+# Documentation not intended for remote repository
+docs/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Go build outputs
+bin/
+build/
+dist/
+*.exe
+*.out
+*.test
+coverage.out
+coverage.html
+
+# Go workspace and vendored dependencies
+go.work
+go.work.sum
+vendor/
+
+# Temporary files
+.tmp/
+tmp/
+temp/
+*.tmp
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor and IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker and local runtime data
+*.pid
+*.seed
