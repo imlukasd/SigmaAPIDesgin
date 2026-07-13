@@ -17,7 +17,7 @@ func NewTransactor(pool *pgxpool.Pool) Transactor {
 	return Transactor{pool: pool}
 }
 
-func (t Transactor) WithinTx(ctx context.Context, fn func(context.Context, pgx.Tx) error) (err error) {
+func (t Transactor) WithinTx(ctx context.Context, fn func(context.Context, DBTX) error) (err error) {
 	tx, err := t.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)

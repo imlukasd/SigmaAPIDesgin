@@ -14,6 +14,7 @@ type Config struct {
 	IdleTimeout     time.Duration
 	ShutdownTimeout time.Duration
 	Database        DatabaseConfig
+	Auth            AuthConfig
 }
 
 type DatabaseConfig struct {
@@ -22,6 +23,15 @@ type DatabaseConfig struct {
 	MinConns        int32
 	ConnMaxLifetime time.Duration
 	ConnMaxIdleTime time.Duration
+}
+
+type AuthConfig struct {
+	PasswordBcryptCost  int
+	AccessTokenIssuer   string
+	AccessTokenAudience string
+	AccessTokenSecret   string
+	AccessTokenTTL      time.Duration
+	RefreshTokenTTL     time.Duration
 }
 
 func Load() Config {
@@ -39,6 +49,14 @@ func Load() Config {
 			ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 30*time.Minute),
 			ConnMaxIdleTime: getEnvDuration("DB_CONN_MAX_IDLE_TIME", 5*time.Minute),
 		},
+		Auth: AuthConfig{
+			PasswordBcryptCost:  getEnvInt("AUTH_PASSWORD_BCRYPT_COST", 12),
+			AccessTokenIssuer:   getEnv("AUTH_ACCESS_TOKEN_ISSUER", "corebe-api"),
+			AccessTokenAudience: getEnv("AUTH_ACCESS_TOKEN_AUDIENCE", "corebe-api"),
+			AccessTokenSecret:   getEnv("AUTH_ACCESS_TOKEN_SECRET", ""),
+			AccessTokenTTL:      getEnvDuration("AUTH_ACCESS_TOKEN_TTL", 15*time.Minute),
+			RefreshTokenTTL:     getEnvDuration("AUTH_REFRESH_TOKEN_TTL", 30*24*time.Hour),
+		},
 	}
 }
 
@@ -48,6 +66,19 @@ func getEnv(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func getEnvInt(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 func getEnvInt32(key string, fallback int32) int32 {

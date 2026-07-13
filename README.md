@@ -30,6 +30,21 @@ Run database migrations:
 go run ./cmd/migrate up
 ```
 
+## Auth Configuration
+
+Token and password settings are loaded from environment variables:
+
+```text
+AUTH_PASSWORD_BCRYPT_COST=12
+AUTH_ACCESS_TOKEN_ISSUER=corebe-api
+AUTH_ACCESS_TOKEN_AUDIENCE=corebe-api
+AUTH_ACCESS_TOKEN_SECRET=
+AUTH_ACCESS_TOKEN_TTL=15m
+AUTH_REFRESH_TOKEN_TTL=720h
+```
+
+`AUTH_ACCESS_TOKEN_SECRET` must be provided through environment variables or a secret manager before token issuing is wired into runtime code. Do not commit real secrets.
+
 ## First endpoints
 
 - `GET /healthz`
@@ -39,7 +54,7 @@ go run ./cmd/migrate up
 
 ## Direction
 
-This scaffold intentionally starts small. Later stages will add auth, validation, rate limit, persistence, observability, and payment processing in separate steps.
+This scaffold intentionally grows in production-sized stages. Current auth work covers password hashing, registration, and login credential verification; later stages will add token design, validation, rate limit, observability, and payment processing.
 
 ## Documentation
 
@@ -47,7 +62,11 @@ This scaffold intentionally starts small. Later stages will add auth, validation
 - [Project Roadmap](docs/project-roadmap.md)
 - [Progress Log](docs/progress.md)
 - [API Design Notes](docs/api-design.md)
+- [Authentication](docs/auth.md)
 - [Database](docs/database.md)
 - [Schema](docs/schema.md)
+- [Testing](docs/testing.md)
 - [Pagination](docs/pagination.md)
 - [Repository Pattern](docs/repository-pattern.md)
+
+
