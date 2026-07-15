@@ -25,7 +25,11 @@ func main() {
 	}
 	defer db.Close()
 
-	server := httpserver.New(cfg, logger, db)
+	server, err := httpserver.New(cfg, logger, db)
+	if err != nil {
+		logger.Error("api server failed to initialize", "error", err)
+		os.Exit(1)
+	}
 
 	go func() {
 		logger.Info("api server starting", "addr", cfg.HTTPAddr)

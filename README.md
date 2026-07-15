@@ -7,6 +7,7 @@ The project is intentionally built step by step as a production API lab. The goa
 ## Run
 
 ```powershell
+$env:AUTH_ACCESS_TOKEN_SECRET="local-development-secret-must-be-at-least-32-bytes"
 go run ./cmd/api
 ```
 
@@ -43,18 +44,23 @@ AUTH_ACCESS_TOKEN_TTL=15m
 AUTH_REFRESH_TOKEN_TTL=720h
 ```
 
-`AUTH_ACCESS_TOKEN_SECRET` must be provided through environment variables or a secret manager before token issuing is wired into runtime code. Do not commit real secrets.
+`AUTH_ACCESS_TOKEN_SECRET` must be provided through environment variables or a secret manager. It must be at least 32 bytes. Do not commit real secrets.
 
 ## First endpoints
 
 - `GET /healthz`
 - `GET /readyz`
 - `GET /v1`
+- `POST /v1/auth/register`
+- `POST /v1/auth/login`
+- `POST /v1/auth/refresh`
+- `POST /v1/auth/logout`
+- `GET /v1/auth/me`
 - `GET /v1/payments/capabilities`
 
 ## Direction
 
-This scaffold intentionally grows in production-sized stages. Current auth work covers password hashing, registration, and login credential verification; later stages will add token design, validation, rate limit, observability, and payment processing.
+This scaffold intentionally grows in production-sized stages. Current auth work covers password hashing, registration, login, refresh token rotation, logout, HTTP handlers, and access token middleware; later stages will add rate limit, observability, and payment processing.
 
 ## Documentation
 

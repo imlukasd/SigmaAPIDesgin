@@ -168,6 +168,194 @@ func TestNewTokenManagerRejectsInvalidConfig(t *testing.T) {
 	}
 }
 
+func TestTokenManagerIssueTokenPairCapsExpiryAtSessionExpiry(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 7, 13, 8, 0, 0, 0, time.UTC)
+	sessionExpiresAt := now.Add(10 * time.Minute)
+	manager, err := NewTokenManager(TokenConfig{
+		Issuer:            "corebe-api",
+		Audience:          "corebe-api",
+		AccessTokenSecret: strings.Repeat("s", MinAccessTokenSecretBytes),
+		AccessTokenTTL:    15 * time.Minute,
+		RefreshTokenTTL:   30 * 24 * time.Hour,
+		Clock: func() time.Time {
+			return now
+		},
+		Random: bytes.NewReader(make([]byte, accessTokenIDBytes+RefreshTokenEntropyBytes)),
+	})
+	if err != nil {
+		t.Fatalf("new token manager: %v", err)
+	}
+
+	issued, err := manager.IssueTokenPair(context.Background(), IssueTokenPairParams{
+		UserID:           "user_123",
+		SessionID:        "session_123",
+		SessionExpiresAt: sessionExpiresAt,
+	})
+	if err != nil {
+		t.Fatalf("issue token pair: %v", err)
+	}
+
+	if !issued.Tokens.AccessTokenExpiresAt.Equal(sessionExpiresAt) {
+		t.Fatalf("expected capped access expiry %s, got %s", sessionExpiresAt, issued.Tokens.AccessTokenExpiresAt)
+	}
+	if !issued.Tokens.RefreshTokenExpiresAt.Equal(sessionExpiresAt) {
+		t.Fatalf("expected capped refresh expiry %s, got %s", sessionExpiresAt, issued.Tokens.RefreshTokenExpiresAt)
+	}
+
+	parts := strings.Split(issued.Tokens.AccessToken, ".")
+	var claims accessTokenClaims
+	decodeJWTSegmentForTest(t, parts[1], &claims)
+	if claims.ExpiresAt != sessionExpiresAt.Unix() {
+		t.Fatalf("expected capped jwt exp %d, got %d", sessionExpiresAt.Unix(), claims.ExpiresAt)
+	}
+}
+
+func TestTokenManagerVerifyAccessToken(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 7, 13, 8, 0, 0, 0, time.UTC)
+	secret := strings.Repeat("s", MinAccessTokenSecretBytes)
+	manager, err := NewTokenManager(TokenConfig{
+		Issuer:            "corebe-api",
+		Audience:          "corebe-api",
+		AccessTokenSecret: secret,
+		AccessTokenTTL:    15 * time.Minute,
+		RefreshTokenTTL:   30 * 24 * time.Hour,
+		Clock: func() time.Time {
+			return now
+		},
+	})
+	if err != nil {
+		t.Fatalf("new token manager: %v", err)
+	}
+
+	issued, err := manager.IssueTokenPair(context.Background(), IssueTokenPairParams{
+		UserID:    "user_123",
+		SessionID: "session_123",
+	})
+	if err != nil {
+		t.Fatalf("issue token pair: %v", err)
+	}
+
+	user, err := manager.VerifyAccessToken(context.Background(), issued.Tokens.AccessToken)
+	if err != nil {
+		t.Fatalf("verify access token: %v", err)
+	}
+
+	if user.UserID != "user_123" {
+		t.Fatalf("expected user id, got %s", user.UserID)
+	}
+	if user.SessionID != "session_123" {
+		t.Fatalf("expected session id, got %s", user.SessionID)
+	}
+	if user.AccessTokenID != issued.AccessTokenID {
+		t.Fatalf("expected access token id %s, got %s", issued.AccessTokenID, user.AccessTokenID)
+	}
+	if !user.IssuedAt.Equal(now) {
+		t.Fatalf("expected issued at %s, got %s", now, user.IssuedAt)
+	}
+	if !user.ExpiresAt.Equal(now.Add(15 * time.Minute)) {
+		t.Fatalf("expected expiry %s, got %s", now.Add(15*time.Minute), user.ExpiresAt)
+	}
+}
+
+func TestTokenManagerVerifyAccessTokenRejectsInvalidToken(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 7, 13, 8, 0, 0, 0, time.UTC)
+	secret := strings.Repeat("s", MinAccessTokenSecretBytes)
+	manager, err := NewTokenManager(TokenConfig{
+		Issuer:            "corebe-api",
+		Audience:          "corebe-api",
+		AccessTokenSecret: secret,
+		AccessTokenTTL:    15 * time.Minute,
+		RefreshTokenTTL:   30 * 24 * time.Hour,
+		Clock: func() time.Time {
+			return now
+		},
+	})
+	if err != nil {
+		t.Fatalf("new token manager: %v", err)
+	}
+
+	issued, err := manager.IssueTokenPair(context.Background(), IssueTokenPairParams{
+		UserID:    "user_123",
+		SessionID: "session_123",
+	})
+	if err != nil {
+		t.Fatalf("issue token pair: %v", err)
+	}
+
+	wrongIssuer, err := NewTokenManager(TokenConfig{
+		Issuer:            "other-api",
+		Audience:          "corebe-api",
+		AccessTokenSecret: secret,
+		AccessTokenTTL:    15 * time.Minute,
+		RefreshTokenTTL:   30 * 24 * time.Hour,
+		Clock: func() time.Time {
+			return now
+		},
+	})
+	if err != nil {
+		t.Fatalf("new wrong issuer token manager: %v", err)
+	}
+
+	expiredNow := now.Add(16 * time.Minute)
+	expiredVerifier, err := NewTokenManager(TokenConfig{
+		Issuer:            "corebe-api",
+		Audience:          "corebe-api",
+		AccessTokenSecret: secret,
+		AccessTokenTTL:    15 * time.Minute,
+		RefreshTokenTTL:   30 * 24 * time.Hour,
+		Clock: func() time.Time {
+			return expiredNow
+		},
+	})
+	if err != nil {
+		t.Fatalf("new expired verifier token manager: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		verifier TokenManager
+		token    string
+	}{
+		{
+			name:     "malformed",
+			verifier: manager,
+			token:    "not-a-jwt",
+		},
+		{
+			name:     "invalid signature",
+			verifier: manager,
+			token:    issued.Tokens.AccessToken + "tampered",
+		},
+		{
+			name:     "wrong issuer",
+			verifier: wrongIssuer,
+			token:    issued.Tokens.AccessToken,
+		},
+		{
+			name:     "expired",
+			verifier: expiredVerifier,
+			token:    issued.Tokens.AccessToken,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := tt.verifier.VerifyAccessToken(context.Background(), tt.token)
+			if !errors.Is(err, ErrInvalidAccessToken) {
+				t.Fatalf("expected ErrInvalidAccessToken, got %v", err)
+			}
+		})
+	}
+}
+
 func TestTokenManagerIssueTokenPairRejectsInvalidSubject(t *testing.T) {
 	t.Parallel()
 

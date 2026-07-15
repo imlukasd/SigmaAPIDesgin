@@ -9,8 +9,18 @@ type RegisterRequest struct {
 }
 
 type LoginRequest struct {
-	Email    string
-	Password string
+	Email     string
+	Password  string
+	UserAgent string
+	IPAddress string
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string
+}
+
+type LogoutRequest struct {
+	RefreshToken string
 }
 
 type TokenPair struct {
@@ -21,8 +31,9 @@ type TokenPair struct {
 }
 
 type IssueTokenPairParams struct {
-	UserID    string
-	SessionID string
+	UserID           string
+	SessionID        string
+	SessionExpiresAt time.Time
 }
 
 type IssuedTokenPair struct {
@@ -32,8 +43,11 @@ type IssuedTokenPair struct {
 }
 
 type AuthenticatedUser struct {
-	UserID string
-	Email  string
+	UserID        string
+	SessionID     string
+	AccessTokenID string
+	IssuedAt      time.Time
+	ExpiresAt     time.Time
 }
 
 type RegisterResult struct {
@@ -42,6 +56,12 @@ type RegisterResult struct {
 }
 
 type LoginResult struct {
+	UserID string
+	Email  string
+	Tokens TokenPair
+}
+
+type RefreshTokenResult struct {
 	UserID string
 	Email  string
 	Tokens TokenPair

@@ -25,10 +25,123 @@ paths:
       responses:
         "200":
           description: API metadata
+  /v1/auth/register:
+    post:
+      summary: Register a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered
+        "400":
+          description: Invalid request
+        "409":
+          description: Email already exists
+  /v1/auth/login:
+    post:
+      summary: Login and create an auth session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Token pair issued
+        "401":
+          description: Invalid credentials
+        "403":
+          description: User disabled
+  /v1/auth/refresh:
+    post:
+      summary: Rotate refresh token and issue a new token pair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: New token pair issued
+        "400":
+          description: Invalid request
+        "401":
+          description: Invalid refresh token
+  /v1/auth/logout:
+    post:
+      summary: Revoke a refresh token and auth session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "204":
+          description: Logout completed
+        "400":
+          description: Invalid request
+  /v1/auth/me:
+    get:
+      summary: Return the authenticated access token principal
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Authenticated access token principal
+        "401":
+          description: Invalid or missing access token
   /v1/payments/capabilities:
     get:
       summary: Payment module planning marker
       responses:
         "200":
           description: Payment design principles for later implementation
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - display_name
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        display_name:
+          type: string
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
 
