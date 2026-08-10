@@ -97,6 +97,103 @@ paths:
           description: Authenticated access token principal
         "401":
           description: Invalid or missing access token
+  /v1/organizations:
+    post:
+      summary: Create an organization for the authenticated user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationRequest"
+      responses:
+        "201":
+          description: Organization created with owner membership
+        "400":
+          description: Invalid organization input
+        "401":
+          description: Invalid or missing access token
+        "409":
+          description: Organization slug already exists
+  /v1/organizations/{organization_id}:
+    get:
+      summary: Return an organization after tenant authorization
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Organization visible to the authenticated member
+        "401":
+          description: Invalid or missing access token
+        "403":
+          description: Tenant access denied
+  /v1/organizations/{organization_id}/products:
+    post:
+      summary: Create a product in an organization
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+      responses:
+        "201":
+          description: Product created
+        "400":
+          description: Invalid product input
+        "401":
+          description: Invalid or missing access token
+        "403":
+          description: Tenant access denied
+        "409":
+          description: Product SKU already exists
+  /v1/organizations/{organization_id}/products/{product_id}:
+    get:
+      summary: Return a product after tenant authorization
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: organization_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: product_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Product visible to the authenticated tenant member
+        "400":
+          description: Invalid product input
+        "401":
+          description: Invalid or missing access token
+        "403":
+          description: Tenant access denied
+        "404":
+          description: Product not found
   /v1/payments/capabilities:
     get:
       summary: Payment module planning marker
@@ -144,4 +241,120 @@ components:
       properties:
         refresh_token:
           type: string
+    CreateOrganizationRequest:
+      type: object
+      required:
+        - name
+        - slug
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        status:
+          type: string
+          enum:
+            - active
+            - disabled
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateProductRequest:
+      type: object
+      required:
+        - sku
+        - name
+        - price_amount
+        - price_currency
+      properties:
+        sku:
+          type: string
+          pattern: "^[A-Z0-9][A-Z0-9_-]{0,63}$"
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        price_amount:
+          type: integer
+          format: int64
+          minimum: 0
+        price_currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        sku:
+          type: string
+        name:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        price_amount:
+          type: integer
+          format: int64
+        price_currency:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - active
+            - archived
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    OrganizationMembership:
+      type: object
+      properties:
+        organization_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum:
+            - owner
+            - admin
+            - member
+        status:
+          type: string
+          enum:
+            - active
+            - disabled
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 

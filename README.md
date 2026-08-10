@@ -56,11 +56,15 @@ AUTH_REFRESH_TOKEN_TTL=720h
 - `POST /v1/auth/refresh`
 - `POST /v1/auth/logout`
 - `GET /v1/auth/me`
+- `POST /v1/organizations`
+- `GET /v1/organizations/{organization_id}`
+- `POST /v1/organizations/{organization_id}/products`
+- `GET /v1/organizations/{organization_id}/products/{product_id}`
 - `GET /v1/payments/capabilities`
 
 ## Direction
 
-This scaffold intentionally grows in production-sized stages. Current auth work covers password hashing, registration, login, refresh token rotation, logout, HTTP handlers, and access token middleware; later stages will add rate limit, observability, and payment processing.
+This scaffold intentionally grows in production-sized stages. Current auth work covers password hashing, registration, login, refresh token rotation, logout, HTTP handlers, and access token middleware. Current tenancy work covers organization creation, membership authorization, tenant context middleware, protected organization reads, and the tenant data isolation convention. Current catalog work covers product schema, tenant-safe product repository queries, product service validation, and tenant-scoped create/read HTTP routes. Later stages will add product listing, order flows, payments, rate limiting, and observability.
 
 ## Documentation
 
@@ -69,6 +73,9 @@ This scaffold intentionally grows in production-sized stages. Current auth work 
 - [Progress Log](docs/progress.md)
 - [API Design Notes](docs/api-design.md)
 - [Authentication](docs/auth.md)
+- [Tenancy](docs/tenancy.md)
+- [Tenant Data Isolation](docs/tenant-data-isolation.md)
+- [Catalog](docs/catalog.md)
 - [Database](docs/database.md)
 - [Schema](docs/schema.md)
 - [Testing](docs/testing.md)
